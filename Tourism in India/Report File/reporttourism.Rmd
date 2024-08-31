@@ -1,0 +1,1910 @@
+---
+title: "Tourism in India Project Report"
+author: "Group 16:- 
+Chandan Kumar Singh (231080030),
+
+Omkar Yadav (231080062),
+
+Soumen Konai (231080091),
+
+Ashwani Kumar (231080025),
+
+Instructor:- 
+Prof. Dootika Vats
+"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+#| warning: FALSE
+library(tidyverse)
+library(rvest)
+library(dplyr)
+library(imager)
+library(DT)
+library(ggplot2)
+library(shiny)
+library(htmltools)
+```
+
+# Introduction
+
+This report provides a detailed explanation of the "Tourism in India" Shiny app. The app is designed to display tourism-related data and visualizations for various parts of India, motorcycle tours, and travel information by month.
+
+India is a land of diverse cultures, landscapes, and traditions which offers a captivating tapestry for tourists. Our project, "Exploring India's Hidden Gems," seeks to showcase the uncharted beauty and rich heritage of this incredible country. With a focus on sustainable and responsible tourism, we aim to promote lesser-known destinations, unique cultural experiences, and eco-friendly practices. Through this project, we aspire to foster economic growth in local communities, preserve India's natural wonders, and provide travelers with unforgettable journeys that go beyond the usual tourist trail. Join us on a transformative voyage through the heart of India and discover its untold stories.
+
+# Objective
+
+This project aims to provide users with an immersive experience by offering a curated selection of the top ten most favorable places in each selected area.
+
+Our Shiny app, 'Discover India's Treasures,' is a user-friendly platform designed to help travelers and enthusiasts explore the breathtaking beauty and cultural richness of India's diverse states and main regions. 
+
+# Data Extraction and Preprocessing
+
+We are extracting data from "https://en.wikipedia.org/wiki/Tourism_in_India".
+
+Basically we collect the pictures name and the picture url.
+
+We extracted tables as follows:-
+
+table_1 for Foreign tourist arrivals in India (1997–20222).
+
+table_2 for Foreign exchange earnings from tourism in India (1997–2020).
+
+table_3 for Source countries for foreign tourist arrivals in India in 2019.
+
+table_4 for Share of top 10 states/UT's of India in number of foreign tourist visits in 2017.
+
+table_5 for Share of top 10 states/UT's of India in number of domestic tourist visits in 2017.
+
+
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+html <- read_html("https://en.wikipedia.org/wiki/Tourism_in_India")
+
+table_data <- html %>%
+  html_table()
+
+# Foreign tourist arrivals in India (1997–20222).
+table_1 <- table_data[[4]]
+
+# Foreign exchange earnings from tourism in India (1997–2020).
+table_2 <- table_data[[5]]
+
+# Source countries for foreign tourist arrivals in India in 2019.
+table_3 <- table_data[[6]]
+
+# Share of top 10 states/UT's of India in number of foreign tourist visits in 2017.
+table_4 <- table_data[[8]]
+
+# Share of top 10 states/UT's of India in number of domestic tourist visits in 2017.
+table_5 <- table_data[[9]]
+
+
+
+```
+
+
+The app fetches data from web sources, primarily Wikipedia. It retrieves tables and images related to tourism in India.
+
+we also try to scrap the places description and put this as a link in shiny app.
+
+final_table for scrapped_final_table .
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+
+data_img <- html %>%
+  html_elements(".mw-file-element") %>%
+  html_attr("src")
+
+data_img <- data_img[29:110]
+# data_img
+
+data_place <- html %>% html_elements(".gallerytext") %>% html_text()
+data_place <- data_place[1:82]
+Place_to_Visit <- c()
+for(i in 1:82)
+{
+  data_place[i] <- substring(data_place[i],first = 2)
+  Place_to_Visit[i] <- gsub(pattern = "\n\n\t\t\t",replacement = "",x = data_place[i])
+}
+
+# we can also use this for collecting names
+# html %>% html_elements(".gallerytext") %>% html_text2()
+
+# Place_to_Visit
+
+url_img <- c()
+for(i in 1:82)
+{
+  
+  url_img[i] <- paste0("https:",data_img[i])
+}
+# url_img
+# a <- load.image(url_img[1])
+# plot(a)
+
+
+#data <- tibble(Place_to_Visit,url_img)
+#view(data)  
+
+
+d <- html %>% html_elements(".gallerytext a") %>% html_attr("href")
+# d
+
+link_n <- c(d[1],d[3],d[5],d[7],d[9],d[10],d[12],
+            d[13],d[15],d[17],d[19],d[21],d[23],
+            d[24],d[25],d[26],d[27],d[29],d[30])
+link_s <- c(d[32],d[33],d[36],d[38],d[40],d[42],d[43],d[44],
+            d[45],d[47],d[48],d[50],d[52],
+            d[53],d[54])
+link_c <- c(d[55],d[57],d[59],d[60],d[61],d[62],d[65],
+            d[66],d[68],d[69],d[71],d[73],
+            d[75])
+link_w <- c(d[76],d[77],d[78],d[80],d[81],d[82],
+            d[83],d[84],d[85],d[87],
+            d[89],d[91],d[92],d[93],
+            d[95],d[96])
+link_e <- c(d[98],d[100],d[103],"Rainbow Waterfalls",
+            d[105],d[108],d[109],d[110],d[111],
+            d[112],d[113],d[114],"Sri_Mayapur_Chandrodaya_Mandir")
+link_ne <- c(d[116],d[118],d[120],d[121],
+             d[122],d[123])
+
+description <- c(link_n,link_s,link_c,link_w,link_e,link_ne)
+# description
+
+url_place_description <- c()
+for(i in 1:82)
+{
+  
+  url_place_description[i] <- paste0("https://en.wikipedia.org/",description[i])
+}
+# url_place_description
+
+
+final_table <- tibble(Place_to_Visit,url_img,url_place_description)
+
+dis <- NULL
+for (i in 1:82)
+{
+  dis[i] <- paste0("<a href='",final_table$url_place_description[i],"' target='_blank'>Details</a>")
+}
+
+
+
+
+# if you want to see the table realted the webpage the you can run the below code.
+# for getting more information in (readable) table format
+#  table <- c()
+#  for(i in 1:84)
+#  {
+
+#    table[i] <- read_html(url_img_description[i]) %>% 
+#    html_table()
+#   }
+
+
+```
+
+## Data Visualization and Analysis
+
+The app uses a combination of ggplot2 and DT for data visualization and analysis. Each of the following sections corresponds to a specific tab within the app.
+
+# Foreign Tourist Arrivals in India (1997 -- 2022)
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+table_1
+```
+
+## Data Visualization
+
+The "Foreign tourist arrivals in India (1997--2022)" tab presents a line plot showing the trend in foreign tourist arrivals over the years.
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+
+
+data <- table_1
+ggplot(data = data) +
+        geom_line(mapping = aes(x = Year, y = `Arrivals (millions)`), linetype = 1, linewidth = 1, color = "red")
+```
+
+## Insights
+
+On an average the number of people Arrived (millions) (1997 - 2022)
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+table_1$`Arrivals (millions)` <- as.numeric(table_1$`Arrivals (millions)`)
+mean(table_1$`Arrivals (millions)`) 
+```
+
+we can see that in 2019 because of covid pandemic the number arrivals go down and after 2021 there is increment in number of arrivals
+
+# Foreign exchange earnings from tourism in India (1997--2020)
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+table_2
+```
+
+## Data Visualization
+
+The "Foreign exchange earnings from tourism in India (1997--2020)" tab displays a bar chart showing earnings in Indian Rupees over the years.
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+data <- table_2
+data$`Earnings (₹ crores)` <- as.numeric(gsub(",", "", gsub("−", "-", data$`Earnings (₹ crores)`)))
+      # Create a bar plot
+      barplot(data$`Earnings (₹ crores)`, names.arg = data$Year, col = "blue", main = "Earnings Over the Years",
+              xlab = "Year", ylab = "Earnings in ₹ Crores")
+```
+
+# Source countries for foreign tourist arrivals in India in 2019.
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+table_3
+```
+
+## Data Visualization
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+data <- table_3
+data <- data[-c(12),]
+      
+      # Assuming your data is in a tibble named table_2
+      data$Number <- as.numeric(gsub(",", "", data$Number))
+      barplot(data$Number, names.arg = data$Country, col = "blue", main = "Number of People",
+              xlab = "Country", ylab = "Number")
+```
+
+## Insights
+Bangladesh is the topmost country with 23.58 % share.
+
+# Share of top 10 states/UTs of India in number of foreign tourist visits in 2017.
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+table_4
+```
+
+## Data Visualization
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+data <- table_4
+data <- data[c(1:10),]
+      
+      # Assuming your data is in a tibble named table_2
+      data$Number <- as.numeric(gsub(",", "", data$Number))
+      barplot(data$Number, names.arg = data$`State/Union Territory`, col = "blue", main = "Share of top 10 states/UTs of India in number of foreign tourist visits in 2017",
+              xlab = "State/Union Territory", ylab = "NUmber")
+```
+
+## Insights
+Maharashtra of India is the topmost in number of foreign tourist visits with 18.9 %.
+
+# Share of top 10 states/UTs of India in number of domestic tourist visits in 2017.
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+table_5
+```
+
+## Data Visualization
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+data <- table_5
+data <- data[c(1:10),]
+      
+      # Assuming your data is in a tibble named table_2
+      data$Number <- as.numeric(gsub(",", "", data$Number))
+      barplot(data$Number, names.arg = data$`State/Union Territory`, col = "blue", main = "Share of top 10 states/UTs of India in number of domestic tourist visits in 2017",
+              xlab = "State/Union Territory", ylab = "NUmber")
+      
+```
+
+## Insights
+Tamil Nadu of India is the topmost in number of domestic tourist visits with 20.9 %.
+
+# Final Table
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+final_table <- tibble(final_table$Place_to_Visit,dis) 
+colnames(final_table)[colnames(final_table) == "final_table$Place_to_Visit"] <- "Place_to_Visit"
+colnames(final_table)[colnames(final_table) == "dis"] <- "discription_link"
+final_table
+```
+
+
+# Main Parts of India
+
+The "Main Parts of India" tab provides users with data related to different parts of India, including North, South, Central, West, East, and Northeast India. Users can select a specific region and view associated data.
+
+## Scrapped Tables
+
+## North India
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+
+North_India <- tibble(Place_to_Visit[1:19],url_img[1:19],url_place_description[1:19])
+colnames(North_India)[colnames(North_India) == "Place_to_Visit[1:19]"] <- "Data_Type"
+colnames(North_India)[colnames(North_India) == "url_img[1:19]"] <- "Picture_URL"
+North_India
+```
+
+## South India
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+South_India <- tibble(Place_to_Visit[20:34],url_img[20:34],url_place_description[20:34])
+colnames(South_India)[colnames(South_India) == "Place_to_Visit[20:34]"] <- "Data_Type"
+colnames(South_India)[colnames(South_India) == "url_img[20:34]"] <- "Picture_URL"
+South_India
+```
+
+## Central India
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+Central_India <- tibble(Place_to_Visit[35:47],url_img[35:47],url_place_description[35:47])
+colnames(Central_India)[colnames(Central_India) == "Place_to_Visit[35:47]"] <- "Data_Type"
+colnames(Central_India)[colnames(Central_India) == "url_img[35:47]"] <- "Picture_URL"
+Central_India
+```
+
+## West India
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+West_India <- tibble(Place_to_Visit[47:63],url_img[47:63],url_place_description[47:63])
+colnames(West_India)[colnames(West_India) == "Place_to_Visit[47:63]"] <- "Data_Type"
+colnames(West_India)[colnames(West_India) == "url_img[47:63]"] <- "Picture_URL"
+West_India
+```
+
+## East India
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+East_India <- tibble(Place_to_Visit[63:76],url_img[63:76],url_place_description[63:76])
+colnames(East_India)[colnames(East_India) == "Place_to_Visit[63:76]"] <- "Data_Type"
+colnames(East_India)[colnames(East_India) == "url_img[63:76]"] <- "Picture_URL"
+East_India
+```
+## NorthEast India
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+NorthEast_India <- tibble(Place_to_Visit[76:82],url_img[76:82],url_place_description[76:82])
+colnames(NorthEast_India)[colnames(NorthEast_India) == "Place_to_Visit[76:82]"] <- "Data_Type"
+colnames(NorthEast_India)[colnames(NorthEast_India) == "url_img[76:82]"] <- "Picture_URL"
+NorthEast_India
+```
+
+
+
+# States/UT's
+India is a diverse country so every state/UT's has some beautiful places to vist.
+
+So we scrapped the top ten most favorable places to visit for each state.
+
+## Scrapped Tables
+
+## Andhra Pradesh
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Andhra_Pradesh
+
+##### for url of photo...............
+
+html_Andhra <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Andhra_Pradesh")
+
+html_Andhra1 <- html_Andhra%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Andhra1 <- html_Andhra1[2:11]
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Andhra1[i])
+}
+
+
+###### for name of photo..............
+
+html_Andhra2 <- html_Andhra%>%html_elements(".mw-default-size")%>%html_text()
+
+html_Andhra2[1]= "Highest Man Made Stone Nandi"
+
+Place_to_Visit <- html_Andhra2[1:10]
+
+Andhra_Pradesh <- data.frame(Place_to_Visit,url_img)
+
+Andhra_Pradesh <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Andhra_Pradesh)[colnames(Andhra_Pradesh) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Andhra_Pradesh)[colnames(Andhra_Pradesh) == "url_img[1:10]"] <- "Picture_URL"
+Andhra_Pradesh
+
+```
+
+## Bihar
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+#  Bihar
+
+##### for url of photo...............
+
+html_Bihar <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Bihar")
+
+html_Bihar1 <- html_Bihar%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Bihar1 <- html_Bihar1[1:10]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Bihar1[i])
+}
+
+###### for name of photo..............
+
+html_Bihar2 <- html_Bihar%>%html_elements(".mw-default-size")%>%html_text()
+
+html_Bihar2[5]= "Maha Bodhi Temple, Bodhgaya"
+
+html_Bihar2[6]="Nalanda Mounds"
+
+html_Bihar2[7]="Vikramshila"
+
+html_Bihar2[8]="Old City Walls at Rajgir"
+
+html_Bihar2[9]="Kesariya Stupa -kesariya- east champaran"
+
+html_Bihar2[10]=" Ashokan Pillar Vaishali "
+
+Place_to_Visit <- html_Bihar2
+
+Bihar <- data.frame(Place_to_Visit,url_img)
+
+Bihar <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Bihar)[colnames(Bihar) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Bihar)[colnames(Bihar) == "url_img[1:10]"] <- "Picture_URL"
+Bihar
+```
+## Chattisgarh
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+#  chattisgarh
+
+##### for url of photo...............
+
+html_chattisgarh <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Chhattisgarh")
+
+html_chattisgarh1 <- html_chattisgarh%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_chattisgarh1 <- html_chattisgarh1[3:12]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_chattisgarh1[i])
+}
+
+
+###### for name of photo..............
+
+html_chattisgarh2 <- html_chattisgarh%>%html_elements(".mw-default-size")%>%html_text()
+html_chattisgarh2 <- c(html_chattisgarh2[1:9])
+html_chattisgarh3 <- c("Chitrakot_waterfalls")
+html_chattisgarh4 <- c(html_chattisgarh3,html_chattisgarh2)
+html_chattisgarh4[7] <- "Baloda-bazar"
+
+Place_to_Visit <- html_chattisgarh4[1:10]
+
+chattisgarh <- data.frame(Place_to_Visit,url_img)
+
+chattisgarh <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(chattisgarh)[colnames(chattisgarh) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(chattisgarh)[colnames(chattisgarh) == "url_img[1:10]"] <- "Picture_URL"
+chattisgarh
+```
+
+## Gujarat
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Gujarat
+
+##### for url of photo...............
+
+html_Gujarat <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Gujarat")
+
+html_Gujarat1 <- html_Gujarat%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Gujarat1 <- html_Gujarat1[4:13]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Gujarat1[i])
+}
+
+###### for name of photo..............
+
+html_Gujarat2 <- html_Gujarat%>%html_elements(".mw-default-size")%>%html_text()
+
+Place_to_Visit <- html_Gujarat2[1:10]
+
+Gujarat <- data.frame(Place_to_Visit,url_img)
+
+Gujarat <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Gujarat)[colnames(Gujarat) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Gujarat)[colnames(Gujarat) == "url_img[1:10]"] <- "Picture_URL"
+Gujarat
+```
+
+## Uttar Pradesh
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Uttar_pradesh
+
+##### for url of photo...............
+
+html_Uttar_pradesh <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Uttar_Pradesh")
+
+html_Uttar_pradesh1 <- html_Uttar_pradesh%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Uttar_pradesh1[1] <- html_Uttar_pradesh1[30]
+
+html_Uttar_pradesh1[5] <- html_Uttar_pradesh1[18]
+
+html_Uttar_pradesh1[9] <- html_Uttar_pradesh1[29]
+
+html_Uttar_pradesh1[3] <- html_Uttar_pradesh1[41]
+
+html_Uttar_pradesh1[6] <- html_Uttar_pradesh1[25]
+
+html_Uttar_pradesh1<- html_Uttar_pradesh1[1:10]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Uttar_pradesh1[i])
+}
+
+###### for name of photo..............
+html_Uttar_pradesh <- c()
+html_Uttar_pradesh[1] <- "Triveni Sangam, Allahabaad"
+html_Uttar_pradesh[2] <- "Taj_Mahal, Agra"
+html_Uttar_pradesh[3] <- "Fatehpur Sikri"
+html_Uttar_pradesh[4] <- "Prem_mandir"
+html_Uttar_pradesh[5] <- "Agra Fort"
+html_Uttar_pradesh[6] <- "Naini_Bridge,Allahabaad"
+html_Uttar_pradesh[7] <- "Varanasiganga"
+html_Uttar_pradesh[8] <- "Kumbhmela"
+html_Uttar_pradesh[9] <- "Anand_Bhawan"
+html_Uttar_pradesh[10] <- "Ashtapad Hastinapur"
+
+Place_to_Visit <- html_Uttar_pradesh
+
+Uttar_pradesh <- data.frame(Place_to_Visit,url_img)
+
+Uttar_pradesh <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Uttar_pradesh)[colnames(Uttar_pradesh) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Uttar_pradesh)[colnames(Uttar_pradesh) == "url_img[1:10]"] <- "Picture_URL"
+Uttar_pradesh
+```
+
+## Karnataka
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Karnataka
+
+##### for url of photo...............
+
+html_Karnataka <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Karnataka")
+
+html_Karnataka1 <- html_Karnataka%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Karnataka1 <- html_Karnataka1[70:79]
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Karnataka1[i])
+}
+
+###### for name of photo..............
+
+html_Karnataka2 <- html_Karnataka%>%html_elements(".mw-default-size")%>%html_text()
+html_Karnataka2 <- html_Karnataka2[5:14]
+Place_to_Visit <- html_Karnataka2
+Karnataka <- data.frame(Place_to_Visit,url_img)
+
+Karnataka <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Karnataka)[colnames(Karnataka) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Karnataka)[colnames(Karnataka) == "url_img[1:10]"] <- "Picture_URL"
+Karnataka
+```
+
+## Jharkhand
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Jharkhand  
+
+##### for url of photo...............
+
+html_Jharkhand  <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Jharkhand")
+
+html_Jharkhand1 <- html_Jharkhand %>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Jharkhand1 <- html_Jharkhand1[-c(8)]
+
+html_Jharkhand1 <- html_Jharkhand1[1:10]
+
+url_img <- c()
+
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Jharkhand1[i])
+}
+
+###### for name of photo..............
+
+html_Jharkhand2 <- html_Jharkhand%>%html_elements(".mw-default-size")%>%html_text()
+
+Place_to_Visit <- html_Jharkhand2[1:10]
+
+Jharkhand <- data.frame(Place_to_Visit,url_img)
+
+Jharkhand <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Jharkhand)[colnames(Jharkhand) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Jharkhand)[colnames(Jharkhand) == "url_img[1:10]"] <- "Picture_URL"
+Jharkhand
+```
+
+## Goa
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Goa  
+
+##### for url of photo...............
+
+html_Goa  <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Goa")
+
+html_Goa1 <- html_Goa%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Goa1 <- html_Goa1[-c(9:12)]
+
+html_Goa1 <- html_Goa1[1:10]
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Goa1[i])
+}
+
+###### for name of photo..............
+
+html_Goa2 <- html_Goa%>%html_elements(".thumb.tright")%>%html_text()
+
+foo_Goa <- strsplit(html_Goa2, ",")
+
+html_Goa3 <- foo_Goa[[1]][2:7]
+
+html_Goa4 <- c("Goa_panoramio")
+
+html_Goa2 <- c(html_Goa4,c( html_Goa3))
+
+html_Goa2[8] <- "Baga Beach in North Goa"
+
+html_Goa2[9] <- "Bogmalo beach in South Goa"
+
+html_Goa2[10] <- "Glassy Tiger"
+
+Place_to_Visit <- html_Goa2
+
+Goa <- data.frame(Place_to_Visit,url_img)
+
+Goa<- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Goa)[colnames(Goa) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Goa)[colnames(Goa) == "url_img[1:10]"] <- "Picture_URL"
+Goa
+```
+
+## Madhya Pradesh
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Madhya_Pradesh
+
+##### for url of photo...............
+
+html_Madhya_Pradesh <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Madhya_Pradesh")
+
+html_Madhya_Pradesh1 <- html_Madhya_Pradesh%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Madhya_Pradesh1 <- html_Madhya_Pradesh1[2:11]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Madhya_Pradesh1[i])
+}
+
+###### for name of photo..............
+
+html_Madhya_Pradesh2 <- html_Madhya_Pradesh%>%html_elements(".mw-default-size")%>%html_text()
+
+html_Madhya_Pradesh2[10] <- "Tal_ul_Masjid, Bhopal"
+
+html_Madhya_Pradesh2 <- html_Madhya_Pradesh2[1:10] 
+Place_to_Visit <-  html_Madhya_Pradesh2
+
+Madhya_Pradesh <- data.frame(Place_to_Visit,url_img)
+
+Madhya_Pradesh <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Madhya_Pradesh)[colnames(Madhya_Pradesh) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Madhya_Pradesh)[colnames(Madhya_Pradesh) == "url_img[1:10]"] <- "Picture_URL"
+Madhya_Pradesh
+```
+
+## Assam
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# Assam
+
+##### for url of photo...............
+
+html_Assam <- read_html("https://en.wikipedia.org/wiki/Tourism_in_Assam")
+
+html_Assam1 <- html_Assam%>%html_elements(".mw-file-element")%>%html_attr("src")
+
+html_Assam1 <- html_Assam1[3:9]
+url_img <- c()
+for(i in 1:7)
+{
+  
+  url_img[i] <- paste0("https:",html_Assam1[i])
+}
+
+###### for name of photo..............
+
+html_Assam2 <- html_Assam%>%html_elements(".mw-halign-right")%>%html_text()
+
+html_Assam2[4] <- "Kamakhya Temple"
+html_Assam2[5] <- "Majuli island"
+html_Assam2[6] <- "Nameri national Park"
+html_Assam2[7] <- "Rang ghar pavilions"
+
+Place_to_Visit <- html_Assam2
+
+Assam <- data.frame(Place_to_Visit,url_img)
+
+Assam <- tibble(Place_to_Visit[1:7],url_img[1:7])
+colnames(Assam)[colnames(Assam) == "Place_to_Visit[1:7]"] <- "Data_Type"
+colnames(Assam)[colnames(Assam) == "url_img[1:7]"] <- "Picture_URL"
+Assam
+```
+
+## West Bengal
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 1.Tourism in West Bengal....//
+
+
+html_West_Bengal<-read_html("https://en.wikipedia.org/wiki/Tourism_in_West_Bengal")
+
+html_West_Bengal1 <- html_West_Bengal%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_West_Bengal1 <- html_West_Bengal1[1:10]
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_West_Bengal1[i])
+}
+
+# for name of photo..............
+
+html_West_Bengal2 <- html_West_Bengal%>%html_elements(".mw-halign-right")%>%html_text()
+html_West_Bengal2[1]= "Darjeeling Himalayan Railway"
+html_West_Bengal2[2]= "Howrah Bridge"
+html_West_Bengal2[3]= "Acharya Jagadish Chandra Bose Indian Botanic Garden"
+html_West_Bengal2[4]= "Morgan House Kalimpong"
+html_West_Bengal2[5]= "Mandarmani Sea Beach"
+html_West_Bengal2[6]= "Chintamani Kar Bird Sanactuary Kolkata"
+html_West_Bengal2[7]= "Panthera tigris tigris"
+html_West_Bengal2[8]= "Gorumara National Park Panorama"
+html_West_Bengal2[9]= "baul singers"
+html_West_Bengal2[10]= "Sunderban"
+Place_to_Visit <- html_West_Bengal2[1:10]
+
+West_bengal <- data.frame(Place_to_Visit,url_img)
+West_bengal <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(West_bengal)[colnames(West_bengal) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(West_bengal)[colnames(West_bengal) == "url_img[1:10]"] <-"Picture_URL"
+West_bengal
+```
+
+## Delhi
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+html_Delhi<-read_html("https://en.wikipedia.org/wiki/List_of_tourist_attractions_in_Delhi")
+html_Delhi1 <- html_Delhi%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Delhi1 <- html_Delhi1[5:14]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Delhi1[i])
+}
+
+
+# for name of photo..............
+
+html_Delhi2 <- html_Delhi%>%html_elements("mw-default-size")%>%html_text()
+html_Delhi2[1]= "Rashtrapati_Bhavan"
+html_Delhi2[2]= "Qutub minar"
+html_Delhi2[3]= "Red Fort"
+html_Delhi2[4]= "Akshardham Temple"
+html_Delhi2[5]= "ISKCON Temple"
+html_Delhi2[6]= "Digambar Jain Lal Mandir"
+html_Delhi2[7]= "Gurudwara Bangla Sahib"
+html_Delhi2[8]= "Jama Masjid"
+html_Delhi2[9]= "Cathedral Church"
+html_Delhi2[10]= "National War Memorial"
+Place_to_Visit <- html_Delhi2[1:10]
+
+Delhi <- data.frame(Place_to_Visit,url_img)
+
+Delhi <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Delhi)[colnames(Delhi) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Delhi)[colnames(Delhi) == "url_img[1:10]"] <-"Picture_URL"
+Delhi
+```
+
+## Telangana
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 3.Tourism of Telangana
+
+html_Telangana<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Telangana")
+html_Telangana1 <- html_Telangana%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Telangana1 <- html_Telangana1[1:8]
+
+url_img <- c()
+for(i in 1:8)
+{
+  
+  url_img[i] <- paste0("https:",html_Telangana1[i])
+}
+
+
+# for name of photo..............
+
+html_Telangana2 <- html_Telangana%>%html_elements("mw-default-size")%>%html_text()
+html_Telangana2[1]= "Charminar"
+html_Telangana2[2]= "Warangal fort"
+html_Telangana2[3]= "Bhongir Fort"
+html_Telangana2[4]= "Jain temple warangal"
+html_Telangana2[5]= "Bhadrachalam Temple"
+html_Telangana2[6]= "Birla Temple"
+html_Telangana2[7]= "Mecca Masjid"
+html_Telangana2[8]= "Medak Cathedral"
+Place_to_Visit <- html_Telangana2[1:8]
+
+Telangana <- data.frame(Place_to_Visit,url_img)
+Telangana <- data.frame(Place_to_Visit,url_img)
+Telangana <- tibble(Place_to_Visit[1:8],url_img[1:8])
+colnames(Telangana)[colnames(Telangana) == "Place_to_Visit[1:8]"] <- "Data_Type"
+colnames(Telangana)[colnames(Telangana) == "url_img[1:8]"] <-"Picture_URL"
+Telangana
+```
+
+## Uttrakhand
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 4.Tourism in Uttrakhand
+
+html_Uttrakhand<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Uttarakhand")
+html_Uttrakhand1 <- html_Uttrakhand%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Uttrakhand1 <- html_Uttrakhand1[1:10]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Uttrakhand1[i])
+}
+
+# for name of photo..............
+
+html_Uttrakhand2 <- html_Uttrakhand%>%html_elements("mw-default-size")%>%html_text()
+html_Uttrakhand2[1]= "Badrinath Valley"
+html_Uttrakhand2[2]= "Kedarnath"
+html_Uttrakhand2[3]= "Gangotri temple"
+html_Uttrakhand2[4]= "Yamunotri temple and ashram"
+html_Uttrakhand2[5]= "Kedarnath Temple"
+html_Uttrakhand2[6]= "Tungnath temple"
+html_Uttrakhand2[7]= "Rudranath temple"
+html_Uttrakhand2[8]= "Madhyamaheshwar Temple"
+html_Uttrakhand2[9]= "Kalpehswar"
+html_Uttrakhand2[10]= "Nainital lake"
+Place_to_Visit <- html_Uttrakhand2[1:10]
+Uttrakhand <- data.frame(Place_to_Visit,url_img)
+Uttrakhand <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Uttrakhand)[colnames(Uttrakhand) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Uttrakhand)[colnames(Uttrakhand) == "url_img[1:10]"] <-"Picture_URL"
+Uttrakhand
+```
+
+## TamilNadu
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 5.Tourism in Tamilnadu
+
+html_Tamilnadu<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Tamil_Nadu")
+html_Tamilnadu1 <- html_Tamilnadu%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Tamilnadu1 <- html_Tamilnadu1[2:11]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Tamilnadu1[i])
+}
+
+# for name of photo..............
+
+html_Tamilnadu2 <- html_Tamilnadu%>%html_elements("mw-default-size")%>%html_text()
+html_Tamilnadu2[1]= "Marina Beach"
+html_Tamilnadu2[2]= "Tamil Nadu Flag"
+html_Tamilnadu2[3]= "south of Chenna"
+html_Tamilnadu2[4]= "Madurai Meenakshi"
+html_Tamilnadu2[5]= "Gangaikonda Cholapuram Temple Gopuram"
+html_Tamilnadu2[6]= "Thiruvannamalai Annamalaiyar Temple"
+html_Tamilnadu2[7]= "Hogenakkal Falls bathing area"
+html_Tamilnadu2[8]= "Parisal Boating in Hogenakkal falls"
+html_Tamilnadu2[9]= "Pichavaram Mangrove Forest"
+html_Tamilnadu2[10]= "Amman Temple"
+Place_to_Visit <- html_Tamilnadu2[1:10]
+
+TamilNadu <- data.frame(Place_to_Visit,url_img)
+TamilNadu <- data.frame(Place_to_Visit,url_img)
+TamilNadu <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(TamilNadu)[colnames(TamilNadu) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(TamilNadu)[colnames(TamilNadu) == "url_img[1:10]"] <-"Picture_URL"
+TamilNadu
+```
+
+## Kerala
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 6.Tourism in Kerala
+
+html_Kerala<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Kerala")
+html_Kerala1 <- html_Kerala%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Kerala1 <- html_Kerala1[3:12]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Kerala1[i])
+}
+# for name of photo..............
+
+html_Kerala2 <- html_Kerala%>%html_elements("mw-default-size")%>%html_text()
+html_Kerala2[1]= "House Boat"
+html_Kerala2[2]= "Light house in Ponnani"
+html_Kerala2[3]= "Resort calicut kerala"
+html_Kerala2[4]= "Kerala Houseboat"
+html_Kerala2[5]= "Kottappura nileshwaram house"
+html_Kerala2[6]= "Munnar Hillscape"
+html_Kerala2[7]= "Sithar Kundu View Point"
+html_Kerala2[8]= "Lightmatter lion tailed macaque"
+html_Kerala2[9]= "The View of the Athirapally Falls during the onset of Monsoon"
+html_Kerala2[10]= "Sea From Bakel"
+Place_to_Visit <- html_Kerala2[1:10]
+Kerala <- data.frame(Place_to_Visit,url_img)
+
+Kerala <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Kerala)[colnames(Kerala) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Kerala)[colnames(Kerala) == "url_img[1:10]"] <-"Picture_URL"
+Kerala
+```
+
+## Rajasthan
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 7.Tourism in Rajasthan
+
+html_Rajasthan<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Rajasthan")
+html_Rajasthan1 <- html_Rajasthan%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Rajasthan1 <- html_Rajasthan1[2:11]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Rajasthan1[i])
+}
+
+
+# for name of photo..............
+
+html_Rajasthan2 <- html_Rajasthan%>%html_elements("mw-default-size")%>%html_text()
+html_Rajasthan2[1]= "Udaipur Lake Palace"
+html_Rajasthan2[2]= "Hawa Mahal on a stormy afternoon"
+html_Rajasthan2[3]= "JagMandir"
+html_Rajasthan2[4]= "City Palace by lake Pichola"
+html_Rajasthan2[5]= "Mehrangarh Fort"
+html_Rajasthan2[6]= "AmberFort"
+html_Rajasthan2[7]= "Amer Fort"
+html_Rajasthan2[8]= "Jaisalmer forteresse"
+html_Rajasthan2[9]= "Ancient Temples Jaisalmer"
+html_Rajasthan2[10]= "Walls of Kumbhalgarh"  
+Place_to_Visit <- html_Rajasthan2[1:10]
+
+Rajasthan <- data.frame(Place_to_Visit,url_img)
+Rajasthan <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Rajasthan)[colnames(Rajasthan) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Rajasthan)[colnames(Rajasthan) == "url_img[1:10]"] <-"Picture_URL"
+Rajasthan
+```
+
+## Odisha
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 8.Tourism in Odisha
+html_Odisha<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Odisha")
+html_Odisha1 <- html_Odisha%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Odisha1 <- html_Odisha1[3:12]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Odisha1[i])
+}
+# for name of photo..............
+
+
+html_Odisha2 <- html_Odisha%>%html_elements("mw-default-size")%>%html_text()
+html_Odisha2[1]= "Konarak Sun Temple"
+html_Odisha2[2]= "Brahmeswar Temple Bhubaneswar"
+html_Odisha2[3]= "Mukteswar temple"
+html_Odisha2[4]= "Lingaraj temple"
+html_Odisha2[5]= "Rajarani Temple"
+html_Odisha2[6]= "Chilika Lake"
+html_Odisha2[7]= "Barehipani Falls"
+html_Odisha2[8]= "Badaghagara Kendujhar"
+html_Odisha2[9]= "Khandhadhar Falls"
+html_Odisha2[10]= "Sanaghagara Kendujhar"
+Place_to_Visit <- html_Odisha2[1:10]
+Odisha <- data.frame(Place_to_Visit,url_img)
+Odisha <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Odisha)[colnames(Odisha) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Odisha)[colnames(Odisha) == "url_img[1:10]"] <-"Picture_URL"
+Odisha
+```
+
+## Maharastra
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 9.Tourism in Maharastra
+html_Maharastra<-read_html("https://en.wikipedia.org/wiki/Tourism_in_Maharashtra")
+html_Maharastra1 <- html_Maharastra%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Maharastra1 <- html_Maharastra1[4:13]
+
+url_img <- c()
+for(i in 1:10)
+{
+  
+  url_img[i] <- paste0("https:",html_Maharastra1[i])
+}
+
+
+# for name of photo..............
+
+
+html_Maharastra2 <- html_Maharastra%>%html_elements("mw-default-size")%>%html_text()
+html_Maharastra2[1]= "Sydney point panchghani"
+html_Maharastra2[2]= "Pandharpur Aashad panoramio"
+html_Maharastra2[3]= "Sri Hazur Sahib Nanded"
+html_Maharastra2[4]= "Statue Of Ahimsa MangiTungi"
+html_Maharastra2[5]= "Bahubali Kumbhoj"
+html_Maharastra2[6]= "Kailasha temple at ellora"
+html_Maharastra2[7]= "Elephanta Caves"
+html_Maharastra2[8]= "Ajanta"
+html_Maharastra2[9]= "Pataleshwar Caves temple"
+html_Maharastra2[10]= "Bibika"
+Place_to_Visit <- html_Maharastra2[1:10]
+Maharastra <- data.frame(Place_to_Visit,url_img)
+Maharastra <- data.frame(Place_to_Visit,url_img)
+Maharastra <- tibble(Place_to_Visit[1:10],url_img[1:10])
+colnames(Maharastra)[colnames(Maharastra) == "Place_to_Visit[1:10]"] <- "Data_Type"
+colnames(Maharastra)[colnames(Maharastra) == "url_img[1:10]"] <-"Picture_URL"
+Maharastra
+```
+
+## Andaman & Nicobar
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+# 10.Tourism in  Andaman and Nicobar
+html_Andaman_and_Nicobar <- read_html("https://en.wikipedia.org/wiki/Tourism_in_the_Andaman_and_Nicobar_Islands")
+html_Andaman_and_Nicobar1 <- html_Andaman_and_Nicobar%>%html_elements(".mw-file-element")%>%html_attr("src")
+html_Andaman_and_Nicobar1 <- html_Andaman_and_Nicobar1[1:6] 
+
+url_img <- c()
+for(i in 1:6)
+{
+  
+  url_img[i] <- paste0("https:",html_Andaman_and_Nicobar1[i])
+}
+
+# for photo name........//
+
+html_Andaman_and_Nicobar2 <- html_Andaman_and_Nicobar%>%html_elements(".mw-default-size")%>%html_text() 
+html_Andaman_and_Nicobar2[1]= "CellularJail Wings" 
+html_Andaman_and_Nicobar2[2]= "Gallows on Viper Island" 
+html_Andaman_and_Nicobar2[3]= "Havelock Island"
+html_Andaman_and_Nicobar2[4]= "India Tourism Elephant"
+html_Andaman_and_Nicobar2[5]= "Viper Island" 
+html_Andaman_and_Nicobar2[6]= "Andaman ross"
+
+Place_to_Visit <- html_Andaman_and_Nicobar2[1:6] 
+Andaman_and_Nicobar <- data.frame(Place_to_Visit,url_img)
+Andaman_and_Nicobar <- tibble(Place_to_Visit[1:6],url_img[1:6])
+colnames(Andaman_and_Nicobar)[colnames(Andaman_and_Nicobar) == "Place_to_Visit[1:6]"] <- "Data_Type"
+colnames(Andaman_and_Nicobar)[colnames(Andaman_and_Nicobar) == "url_img[1:6]"] <-"Picture_URL"
+Andaman_and_Nicobar
+```
+
+
+# Motorbike Tour
+
+The "Motorbike Tour" tab offers information about motorcycle tours in India.
+
+We scrapped data nearly 20 places to visit by motorbike from "https://www.thrillophilia.com/motorcycle-tours-in-india".
+
+Make a table named my_tibble which contains columns as :-
+
+Tour
+
+Description
+
+Common Route Taken
+
+Total Riding distance
+
+Best Riding Season
+
+## Data Extraction and Preprocessing
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+url <- read_html("https://www.thrillophilia.com/motorcycle-tours-in-india")
+data3 <- url %>% html_elements(".h3") %>% html_text2()
+data3 <- data3[1:20]
+
+data4 <- url %>% html_elements(".text-holder.read-more-wrap") %>% html_text2()
+
+```
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+a <- c()
+b <- c()
+c <- c()
+d <- c()
+e <- c()
+
+a <- strsplit(x = data4[1],split = "Route Map:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e1 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- e1
+
+a <- strsplit(x = data4[2],split = "Route Map:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e2 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e2)
+
+
+
+a <- strsplit(x = data4[3],split ="Common route taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e3 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e3)
+
+a <- strsplit(x = data4[4],split ="Route Map:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e4 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e4)
+
+a <- strsplit(x = data4[5],split ="Route Map:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e5 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e5)
+
+a <- strsplit(x = data4[6],split ="Route Map:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e6 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e6)
+
+a <- strsplit(x = data4[7],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e7 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e7)
+
+a <- strsplit(x = data4[8],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e8 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e8)
+
+a <- strsplit(x = data4[9],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e9 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e9)
+
+a <- strsplit(x = data4[10],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e10 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e10)
+
+a <- strsplit(x = data4[11],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e11 <-data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e11)
+
+a <- strsplit(x = data4[12],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e12 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e12)
+
+a <- strsplit(x = data4[13],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e13 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e13)
+
+a <- strsplit(x = data4[14],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e14 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e14)
+
+a <- strsplit(x = data4[15],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e15 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e15)
+
+a <- strsplit(x = data4[16],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e16 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e16)
+
+a <- strsplit(x = data4[17],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e17 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e17)
+
+a <- strsplit(x = data4[18],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e18 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e18)
+
+a <- strsplit(x = data4[19],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e19 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e19)
+
+a <- strsplit(x = data4[20],split ="Common Route Taken:")
+b <- strsplit(a[[1]][2],split = "Total Riding Distance:")
+c <- strsplit(b[[1]][2],split = "Best Riding Season:")
+d <- strsplit(c[[1]][2],split = "Also")
+e20 <- data_frame(a[[1]][1],b[[1]][1],c[[1]][1],d[[1]][1])
+
+my_tibble <- add_row(my_tibble,e20)
+
+my_tibble <- my_tibble %>%
+  mutate(data3) %>%
+  select(data3, everything())
+
+colnames(my_tibble)[colnames(my_tibble) == "data3"] <- "Tour"
+colnames(my_tibble)[colnames(my_tibble) == "a[[1]][1]"] <- "Description"
+colnames(my_tibble)[colnames(my_tibble) == "b[[1]][1]"] <- "Common Route Taken"
+colnames(my_tibble)[colnames(my_tibble) == "c[[1]][1]"] <- "Total Riding Distance"
+colnames(my_tibble)[colnames(my_tibble) == "d[[1]][1]"] <- "Best Riding Season"
+my_tibble
+
+```
+
+
+
+# Travel Monthwise
+
+In the "Travel Monthwise" tab, users can select a specific month to get travel information.
+
+We extraced data from "https://www.tourism-of-india.com/travel-by-month.html".
+
+
+
+## Data Extraction, Preprocessing Display
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+month <- read_html("https://www.tourism-of-india.com/travel-by-month.html")
+
+#data1 <- html %>% html_elements(".mt-0") %>% html_text2()
+#data1
+
+data_month <- month %>% html_elements(".text") %>% html_text2()
+
+
+paragraph <- c()
+words <- c()
+first_three_words <- c()
+remaining_text <- c()
+for(i in 1:length(data_month))
+{
+  paragraph[i] <- gsub("\n\n",x = data_month[i],replacement = " ")
+  # Split the paragraph into words
+  words <- unlist(strsplit(paragraph[i], " "))
+  
+  # Extract the first three words
+  first_three_words[i] <- paste(words[1:1], collapse = " ")
+  
+  # Remaining paragraph
+  remaining_text[i] <- paste(words[4:length(words)], collapse = " ")
+  
+}
+
+Travel_by_Month_in_India <- tibble(first_three_words,remaining_text)
+colnames(Travel_by_Month_in_India) <- c("Months","Description")
+Travel_by_Month_in_India
+
+```
+
+
+```{r}
+#| echo: FALSE
+#| eval: TRUE
+State_list <- c("Andhra_Pradesh",
+                "Bihar",
+                "chattisgarh",
+                "Gujarat",
+                "Uttar_pradesh",
+                "Karnataka",
+                "Jharkhand",
+                "Goa",
+                " Madhya_Pradesh",
+                "Assam",
+                "West_bengal",
+                "Delhi",
+                "Telangana",
+                "Uttrakhand",
+                "TamilNadu",
+                "Kerala",
+                "Rajasthan",
+                "Odisha",
+                "Maharastra",
+                "Andaman_and_Nicobar",
+                "Jammu_and_kashmir",
+                "Meghalaya",
+                "Sikkim",
+                "Nagaland",
+                "Tripura",
+                "Mizoram",
+                "Himachal_Pradesh",
+                "Haryana",
+                "Panjab",
+                "Manipur",
+                "Chandigarh",
+                "Dadra_and_Nagar_Haveli",
+                "Ladakh",
+                "Lakshadeep",
+                "Puducherry"
+                )
+# Define your data tables (table_1, table_2, etc.) and table_list here
+# Sample data for table2_list 
+table2_list <- c("North_India",
+                 "South_India",
+                 "Central_India",
+                 "West_India",
+                 "East_India",
+                 "NorthEast_India")
+table_list <- c(
+                "Foreign tourist arrivals in India (1997–2022).",
+                "Foreign exchange earnings from tourism in India (1997–2020).",
+                "Source countries for foreign tourist arrivals in India in 2019.",
+                "Share of top 10 states/UTs of India in number of foreign tourist visits in 2017.",
+                "Share of top 10 states/UTs of India in number of domestic tourist visits in 2017.",
+                "Scrapped_data_table")
+
+```
+
+
+# User Interface and Interaction
+
+The Shiny app provides a user-friendly interface with interactive elements, including dropdown menus and data tables. Users can interact with the app to select the data they want to explore.
+
+### Shiny App Code
+
+```{r}
+
+ui <- fluidPage(
+  tabsetPanel(
+    tabPanel("Tables",
+             titlePanel("Table and Graph"),
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("tableType", "Select Table Type:", choices = table_list),
+               ),
+               mainPanel(
+                 DTOutput("table"),
+                 plotOutput("plot")
+               )
+             )),
+    tabPanel("Main parts of India",
+             titlePanel("Part Wise Tourist Place"),
+             
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("N_S", "Select", choices = table2_list),
+                 
+                 uiOutput("data_type"),
+                 uiOutput("pictures")
+               ),
+               
+               mainPanel(
+                 DTOutput("content")
+               )
+             )
+             ),
+    tabPanel("States",
+             tabPanel("States",
+                      titlePanel("State Wise Tourist Place"),
+                      
+                      sidebarLayout(
+                        sidebarPanel(
+                          selectInput("rajya", "State/Union Territory", choices = State_list),
+                          
+                          uiOutput("data_type3"),
+                          uiOutput("pictures3")
+                        ),
+                        
+                        mainPanel(
+                          DTOutput("content3")
+                        )
+                      )
+             )),
+    tabPanel("Motorbike Tour",
+             titlePanel("Bike Tour Table"),
+             mainPanel(
+               DTOutput("myTable")
+             )),
+    tabPanel("Travel Monthwise",
+             titlePanel("Travel by Month in India"),
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("Month", "Select Month:", choices = Travel_by_Month_in_India$Months),
+               ),
+               mainPanel(
+                 textOutput("Description")
+               )
+             ))
+  )
+)
+
+server <- function(input, output) {
+  datasetInput1 <- reactive({
+    switch(input$tableType,
+           "Foreign tourist arrivals in India (1997–2022)." = table_1,
+           "Foreign exchange earnings from tourism in India (1997–2020)." = table_2,
+           "Source countries for foreign tourist arrivals in India in 2019." = table_3,
+           "Share of top 10 states/UTs of India in number of foreign tourist visits in 2017." = table_4,
+           "Share of top 10 states/UTs of India in number of domestic tourist visits in 2017." = table_5,
+           "Scrapped_data_table" = final_table
+    )
+  })
+  
+  output$table <- renderDT({
+    datatable(
+      datasetInput1(),
+      escape = FALSE
+    )
+   
+  })
+  
+  output$plot <- renderPlot({
+    data <- datasetInput1()
+    
+    if (identical(data, table_1)) {
+      ggplot(data = data) +
+        geom_line(mapping = aes(x = Year, y = `Arrivals (millions)`), linetype = 1, linewidth = 1, color = "red")
+    } else if (identical(data, table_2)) {
+
+      
+      
+      # Assuming your data is in a tibble named table_2
+      data$`Earnings (₹ crores)` <- as.numeric(gsub(",", "", gsub("−", "-", data$`Earnings (₹ crores)`)))
+      # Create a bar plot
+      barplot(data$`Earnings (₹ crores)`, names.arg = data$Year, col = "blue", main = "Earnings Over the Years",
+              xlab = "Year", ylab = "Earnings in ₹ Crores")
+      
+    } else if (identical(data, table_3)) {
+      
+      data <- data[-c(12),]
+      
+      # Assuming your data is in a tibble named table_2
+      data$Number <- as.numeric(gsub(",", "", data$Number))
+      barplot(data$Number, names.arg = data$Country, col = "blue", main = "Number of People",
+              xlab = "Country", ylab = "Number")
+      
+    } else if (identical(data, table_4)) {
+      
+      data <- data[c(1:10),]
+      
+      # Assuming your data is in a tibble named table_2
+      data$Number <- as.numeric(gsub(",", "", data$Number))
+      barplot(data$Number, names.arg = data$`State/Union Territory`, col = "blue", main = "Share of top 10 states/UTs of India in number of foreign tourist visits in 2017",
+              xlab = "State/Union Territory", ylab = "NUmber")
+      
+    } else if (identical(data, table_5)) {
+      
+      data <- data[c(1:10),]
+      
+      # Assuming your data is in a tibble named table_2
+      data$Number <- as.numeric(gsub(",", "", data$Number))
+      barplot(data$Number, names.arg = data$`State/Union Territory`, col = "blue", main = "Share of top 10 states/UTs of India in number of domestic tourist visits in 2017",
+              xlab = "State/Union Territory", ylab = "NUmber")
+      
+    } 
+  })
+  
+  datasetInput <- reactive({
+    switch(input$N_S,
+           "North_India" = North_India,
+           "South_India" = South_India,
+           "Central_India" = Central_India,
+           "West_India" = West_India,
+           "East_India" = East_India,
+           "NorthEast_India" = NorthEast_India
+    )
+  })
+  
+  output$data_type <- renderUI({
+    data <- datasetInput()
+    selectInput("data_type", "Please Select", choices = data$Data_Type)
+  })
+  
+  output$pictures <- renderUI({
+    data <- datasetInput()
+    pictures_url <- data[data$Data_Type == input$data_type, "Picture_URL"]
+    
+    if (is.null(pictures_url) || length(pictures_url) == 0) {
+      return(NULL)
+    }
+    
+    pictures <- lapply(pictures_url, function(url) {
+      tags$img(src = url)
+    })
+    
+    div(pictures)
+  })
+  
+  output$content <- renderDT({
+    data <- datasetInput()
+    datatable(data)
+  })
+  
+  output$Description <- renderText({
+    if (input$Month == "November")
+    {
+      Travel_by_Month_in_India$Description[1]
+    } else if (input$Month == "December")
+    {
+      Travel_by_Month_in_India$Description[2]
+    } else if (input$Month == "January")
+    {
+      Travel_by_Month_in_India$Description[3]
+    } else if (input$Month == "February")
+    {
+      Travel_by_Month_in_India$Description[4]
+    } else if (input$Month == "February")
+    {
+      Travel_by_Month_in_India$Description[4]
+    } else if (input$Month == "March")
+    {
+      Travel_by_Month_in_India$Description[5]
+    } else if (input$Month == "April")
+    {
+      Travel_by_Month_in_India$Description[6]
+    } else if (input$Month == "May")
+    {
+      Travel_by_Month_in_India$Description[7]
+    } else if (input$Month == "June")
+    {
+      Travel_by_Month_in_India$Description[8]
+    } else if (input$Month == "July")
+    {
+      Travel_by_Month_in_India$Description[9]
+    } else if (input$Month == "August")
+    {
+      Travel_by_Month_in_India$Description[10]
+    } else if (input$Month == "September")
+    {
+      Travel_by_Month_in_India$Description[11]
+    } else if (input$Month == "October")
+    {
+      Travel_by_Month_in_India$Description[12]
+    } 
+  })
+  
+  output$myTable <- renderDT({
+    datatable(my_tibble)
+  })
+  
+  datasetInput3 <- reactive({
+    switch(input$rajya,
+           "Andhra_Pradesh" = Andhra_Pradesh,
+           "Bihar" = Bihar,
+           "chattisgarh" = chattisgarh,
+           "Gujarat" = Gujarat,
+           "Uttar_pradesh" = Uttar_pradesh,
+           "Karnataka" = Karnataka,
+           "Jharkhand" = Jharkhand,
+           "Goa" = Goa,
+           "Madhya_Pradesh" = Madhya_Pradesh,
+           "Assam" = Assam,
+           "West_bengal"=West_bengal,
+           "Delhi"=Delhi,
+           "Telangana"=Telangana,
+           "Uttrakhand"=Uttrakhand,
+           "TamilNadu"=TamilNadu,
+           "Kerala"=Kerala,
+           "Rajasthan"=Rajasthan,
+           "Odisha"=Odisha,
+           "Maharastra"=Maharastra,
+           "Andaman_and_Nicobar"=Andaman_and_Nicobar
+           
+           
+           
+           
+    )
+  })
+  
+  output$data_type3 <- renderUI({
+    data <- datasetInput3()
+    selectInput("data_type3", "Select the tour place", choices = data$Data_Type)
+  })
+  
+  output$pictures3 <- renderUI({
+    data <- datasetInput3()
+    pictures_url3 <- data[data$Data_Type == input$data_type3, "Picture_URL"]
+    
+    if (is.null(pictures_url3) || length(pictures_url3) == 0) {
+      return(NULL)
+    }
+    
+    pictures3 <- lapply(pictures_url3, function(url) {
+      tags$img(src = url)
+    })
+    
+    div(pictures3)
+  })
+  
+  output$content3 <- renderDT({
+    data <- datasetInput3()
+    datatable(data)
+  })
+  
+  
+}
+
+shinyApp(ui, server)
+
+```
+# Questions 
+
+1. What are the current trends in tourism in India?
+
+2. How "Tourism in India" contributes to the economic growth in India?
+
+3. What is the role of technology in enhancing the tourist experience in India?
+
+4. How can language barriers be managed for tourists visiting from non-English speaking countries?
+
+5. What are the cultural sensitivities and customs that need to be considered when promoting tourism in India?
+
+6. What are the environmental impacts of increased tourism in India and how can they be mitigated?
+
+7. What are the limitations in terms of availability and affordability of accommodation for tourists in India?
+
+8. How can the issue of over tourism in certain Indian destinations be managed?
+
+9. How does the security issues impact tourism in India and what measures are inplace to insure the safety of Tourists?
+
+10. How does the global pandemic affect the tourism industry in India?
+
+11. How can infrastructure and transportation be improved to handle the influx of tourists in popular Indian destinations?
+
+12. What are the roles of different stakeholders, including government, private sector, and local communities, in shaping Indian tourism?
+
+13. How do political and social issues affect the tourism industry in India?
+
+# Challenges and Limitations
+
+Challenges faced during app development and discuss potential limitations.
+
+The data is too much nasty for Web Scrapping. Most of the time the name of the variables are not same so we have to set the variable names carefully.
+
+Numerical dataset is not available so we are not able to do data analysis sufficiently.
+
+# Conclusion
+
+Summarizing the main points of the report and emphasize the importance of the "Tourism in India" Shiny app.
+
+Our main objective is to show the top ten most favorable places in states and main parts of India.
+
+We also scrape some tables that can explain the tourism more in India.
+
+The following tables are:-
+
+Foreign tourist arrivals in India (1997–2022).
+
+Foreign exchange earnings from tourism in India (1997–2020).
+
+Source countries for foreign tourist arrivals in India in 2019.
+
+Share of top 10 states/UT's of India in number of foreign tourist visits in 2017.
+
+Share of top 10 states/UT's of India in number of domestic tourist visits in 2017.
+
+States Table
+
+Main Parts of India(North,South,Central,East,West,North East)
+
+We also add description on the final table.
+If you want travel any place then you just click on Details to see the Description of that place.
+
+We also scrap data related to Motorbike Tour which is most famous among the youngster.
+
+If you want to travel Month wise in India you just select the month and the description will be seen.
+
+Finally we try to make an app that is user friendly and easy to explain all the things related to Tourism(one of them is top ten most favorable places.)
+
+# Future Work
+Provide suggestions for future improvements or additional features that can enhance the app.
+
+We also want to add the description of the place below the photo make our shiny app more attractive and useful for enthusiastic tourists.
+
+# References
+It utilizes data obtained from web sources such as Wikipedia
+
+("<https://en.wikipedia.org/wiki/Tourism_in_India>"),
+
+("<https://www.tourism-of-india.com/travel-by-month.html>"),
+
+("<https://www.thrillophilia.com/motorcycle-tours-in-india>"),
+
+("<https://www.tourism-of-india.com/travel-by-month.html>"). 
+
+The app makes use of several R packages, including `shiny`, `rvest`, `dplyr`, `ggplot2`, and `DT`.
+
+# THANK YOU
